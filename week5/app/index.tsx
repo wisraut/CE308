@@ -10,8 +10,8 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from "react-native";
-import CustomInput from "./components/CustomInput";
-import CustomButton from "./components/CustomButton";
+import CustomInput from "../components/CustomInput";
+import CustomButton from "../components/CustomButton";
 
 interface FormData {
   fullName: string;
