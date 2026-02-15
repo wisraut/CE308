@@ -1,4 +1,3 @@
-import "./global.css";
 import React, { useState } from "react";
 import {
   View,
@@ -12,6 +11,9 @@ import {
 } from "react-native";
 import CustomInput from "../components/CustomInput";
 import CustomButton from "../components/CustomButton";
+import Checkbox from "../components/CheckBox";
+import GenderSelection from "../components/GenderSelection";
+import DatePickerInput from "../components/DatePickerInput";
 
 interface FormData {
   fullName: string;
@@ -19,6 +21,10 @@ interface FormData {
   phone: string;
   password: string;
   confirmPassword: string;
+  address: string;
+  gender: string;
+  dob: Date | null;
+  acceptTerms: boolean;
 }
 
 interface FormErrors {
@@ -27,7 +33,17 @@ interface FormErrors {
   phone?: string;
   password?: string;
   confirmPassword?: string;
+  address?: string;
+  gender?: string;
+  dob?: string;
+  acceptTerms?: string;
 }
+
+const GENDER_OPTIONS = [
+  { label: "ชาย", value: "male" },
+  { label: "หญิง", value: "female" },
+  { label: "ไม่ระบุ", value: "other" },
+];
 
 export default function Index() {
   const [formData, setFormData] = useState<FormData>({
@@ -36,67 +52,77 @@ export default function Index() {
     phone: "",
     password: "",
     confirmPassword: "",
+    address: "",
+    gender: "",
+    dob: null,
+    acceptTerms: false,
   });
-  
+
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  const validateField = (name: string, value: string): string | undefined => {
+  const validateField = (name: string, value: any): string | undefined => {
     switch (name) {
       case "fullName":
-        if (!value.trim()) {
-          return "กรุณากรอกชื่อ-นามสกุล";
-        }
-        if (value.trim().length < 3) {
-          return "ชื่อ-นามสกุลต้อง อย่างน้อย 3 ตัวอักษร";
-        }
+        if (typeof value === "string" && !value.trim()) return "กรุณากรอกชื่อ-นามสกุล";
+        if (typeof value === "string" && value.trim().length < 3) return "ชื่อ-นามสกุลต้อง อย่างน้อย 3 ตัวอักษร";
         return undefined;
 
       case "email":
-        if (!value.trim()) {
-          return "กรุณากรอกอีเมล";
-        }
+        if (typeof value === "string" && !value.trim()) return "กรุณากรอกอีเมล";
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(value)) {
-          return "รูปแบบอีเมลไม่ถูกต้อง";
-        }
+        if (typeof value === "string" && !emailRegex.test(value)) return "รูปแบบอีเมลไม่ถูกต้อง";
         return undefined;
 
       case "phone":
-        if (!value.trim()) {
-          return "กรุณากรอกเบอร์โทรศัพท์";
-        }
+        if (typeof value === "string" && !value.trim()) return "กรุณากรอกเบอร์โทรศัพท์";
         const phoneRegex = /^[0-9]{10}$/;
-        if (!phoneRegex.test(value)) {
-          return "เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก";
+        if (typeof value === "string" && !phoneRegex.test(value)) return "เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก";
+        return undefined;
+
+      case "address":
+        if (typeof value === "string" && !value.trim()) return "กรุณากรอกที่อยู่";
+        if (typeof value === "string" && value.trim().length < 10) return "ที่อยู่ต้องยาวอย่างน้อย 10 ตัวอักษร";
+        return undefined;
+
+      case "gender":
+        if (!value) return "กรุณาเลือกเพศ";
+        return undefined;
+
+      case "dob":
+        if (!value) return "กรุณาระบุวันเกิด";
+        if (value instanceof Date) {
+          const today = new Date();
+          let age = today.getFullYear() - value.getFullYear();
+          const m = today.getMonth() - value.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < value.getDate())) {
+            age--;
+          }
+          if (age <= 13) return "ต้องอายุมากกว่า 13 ปี";
         }
         return undefined;
 
       case "password":
-        if (!value) {
-          return "กรุณากรอกรหัสผ่าน";
-        }
-        if (value.length < 6) {
-          return "รหัสผ่านต้อง อย่างน้อย 6 ตัวอักษร";
-        }
+        if (!value) return "กรุณากรอกรหัสผ่าน";
+        if (typeof value === "string" && value.length < 6) return "รหัสผ่านต้อง อย่างน้อย 6 ตัวอักษร";
         return undefined;
 
       case "confirmPassword":
-        if (!value) {
-          return "กรุณายืนยันรหัสผ่าน";
-        }
-        if (value !== formData.password) {
-          return "รหัสผ่านไม่ตรงกัน";
-        }
+        if (!value) return "กรุณายืนยันรหัสผ่าน";
+        if (value !== formData.password) return "รหัสผ่านไม่ตรงกัน";
         return undefined;
-        
+
+      case "acceptTerms":
+        if (value === false) return "คุณต้องยอมรับข้อกำหนดและเงื่อนไขก่อนลงทะเบียน";
+        return undefined;
+
       default:
         return undefined;
     }
   };
-  
-  const handleChange = (name: keyof FormData, value: string) => {
+
+  const handleChange = (name: keyof FormData, value: any) => {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -112,16 +138,9 @@ export default function Index() {
   };
 
   const handleBlur = (name: keyof FormData) => {
-    setTouched((prev) => ({
-      ...prev,
-      [name]: true,
-    }));
-
+    setTouched((prev) => ({ ...prev, [name]: true }));
     const error = validateField(name, formData[name]);
-    setErrors((prev) => ({
-      ...prev,
-      [name]: error,
-    }));
+    setErrors((prev) => ({ ...prev, [name]: error }));
   };
 
   const validateForm = (): boolean => {
@@ -161,17 +180,10 @@ export default function Index() {
       setIsLoading(false);
       Alert.alert(
         "สำเร็จ!",
-        `ลงทะเบียนสำเร็จ\n\nชื่อ: ${formData.fullName}\nอีเมล: ${formData.email}\nเบอร์: ${formData.phone}`,
+        `ลงทะเบียนสำเร็จ\n\nชื่อ: ${formData.fullName}\nอีเมล: ${formData.email}\nเบอร์: ${formData.phone}\nเพศ: ${formData.gender}`,
         [
-          {
-            text: "ตรวจสอบ",
-            onPress: () => console.log("Form Data:", formData),
-          },
-          {
-            text: "รีเซ็ตฟอร์ม",
-            onPress: handleReset,
-            style: "cancel",
-          },
+          { text: "ตรวจสอบ", onPress: () => console.log("Form Data:", formData) },
+          { text: "รีเซ็ตฟอร์ม", onPress: handleReset, style: "cancel" },
         ]
       );
     }, 2000);
@@ -184,6 +196,10 @@ export default function Index() {
       phone: "",
       password: "",
       confirmPassword: "",
+      address: "",
+      gender: "",
+      dob: null,
+      acceptTerms: false,
     });
     setErrors({});
     setTouched({});
@@ -202,40 +218,39 @@ export default function Index() {
           keyboardShouldPersistTaps="handled"
         >
           <View className="bg-blue-600 pt-16 pb-8 px-6">
-            <Text className="text-white text-3xl font-bold">
-              ลงทะเบียนสมาชิก
-            </Text>
-            <Text className="text-blue-100 text-base mt-2">
-              กรุณากรอกข้อมูลให้ครบถ้วน
-            </Text>
+            <Text className="text-white text-3xl font-bold">ลงทะเบียนสมาชิก</Text>
+            <Text className="text-blue-100 text-base mt-2">กรุณากรอกข้อมูลให้ครบถ้วน</Text>
           </View>
+
           <View className="px-6 mt-6">
             <CustomInput
               label="ชื่อ-นามสกุล"
               placeholder="ระบุชื่อและนามสกุล"
               value={formData.fullName}
-              onChangeText={(value) => handleChange("fullName", value)}
+              onChangeText={(value: string) => handleChange("fullName", value)}
               onBlur={() => handleBlur("fullName")}
               error={errors.fullName}
               touched={touched.fullName}
               autoCapitalize="words"
             />
+
             <CustomInput
               label="เบอร์โทรศัพท์"
               placeholder="0812345678"
               value={formData.phone}
-              onChangeText={(value) => handleChange("phone", value)}
+              onChangeText={(value: string) => handleChange("phone", value)}
               onBlur={() => handleBlur("phone")}
               error={errors.phone}
               touched={touched.phone}
               keyboardType="phone-pad"
               maxLength={10}
             />
+
             <CustomInput
               label="อีเมล"
               placeholder="example@email.com"
               value={formData.email}
-              onChangeText={(value) => handleChange("email", value)}
+              onChangeText={(value: string) => handleChange("email", value)}
               onBlur={() => handleBlur("email")}
               error={errors.email}
               touched={touched.email}
@@ -243,28 +258,79 @@ export default function Index() {
               autoCapitalize="none"
               autoCorrect={false}
             />
+
+            <GenderSelection
+              label="เพศ"
+              options={GENDER_OPTIONS}
+              selectedValue={formData.gender}
+              onSelect={(value) => {
+                handleChange("gender", value);
+                setTouched((prev) => ({ ...prev, gender: true }));
+              }}
+              error={errors.gender}
+              touched={touched.gender}
+            />
+
+            <DatePickerInput
+              label="วัน/เดือน/ปีเกิด (ต้องอายุมากกว่า 13 ปี)"
+              value={formData.dob}
+              onChange={(date) => {
+                handleChange("dob", date);
+                setTouched((prev) => ({ ...prev, dob: true }));
+              }}
+              error={errors.dob}
+              touched={touched.dob}
+            />
+
+            <CustomInput
+              label="ที่อยู่"
+              placeholder="ระบุที่อยู่ของคุณอย่างละเอียด"
+              value={formData.address}
+              onChangeText={(value: string) => handleChange("address", value)}
+              onBlur={() => handleBlur("address")}
+              error={errors.address}
+              touched={touched.address}
+              multiline={true}
+              maxLength={200}
+              showCharCount={true}
+            />
+
             <CustomInput
               label="รหัสผ่าน"
               placeholder="อย่างน้อย 6 ตัวอักษร"
               value={formData.password}
-              onChangeText={(value) => handleChange("password", value)}
+              onChangeText={(value: string) => handleChange("password", value)}
               onBlur={() => handleBlur("password")}
               error={errors.password}
               touched={touched.password}
               secureTextEntry
               autoCapitalize="none"
             />
+
             <CustomInput
               label="ยืนยันรหัสผ่าน"
               placeholder="ระบุรหัสผ่านอีกครั้ง"
               value={formData.confirmPassword}
-              onChangeText={(value) => handleChange("confirmPassword", value)}
+              onChangeText={(value: string) => handleChange("confirmPassword", value)}
               onBlur={() => handleBlur("confirmPassword")}
               error={errors.confirmPassword}
               touched={touched.confirmPassword}
               secureTextEntry
               autoCapitalize="none"
             />
+
+            <Checkbox
+              label="ฉันยอมรับข้อกำหนดและเงื่อนไข"
+              checked={formData.acceptTerms}
+              onPress={() => {
+                const newValue = !formData.acceptTerms;
+                handleChange("acceptTerms", newValue);
+                setTouched((prev) => ({ ...prev, acceptTerms: true }));
+              }}
+              error={errors.acceptTerms}
+              touched={touched.acceptTerms}
+            />
+
             <View className="mt-4 space-y-3">
               <CustomButton
                 title="ลงทะเบียน"
@@ -278,17 +344,6 @@ export default function Index() {
                 variant="secondary"
                 disabled={isLoading}
               />
-            </View>
-            <View className="mt-6 bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-              <Text className="text-blue-800 font-semibold text-base mb-2">
-                 คำแนะนำ
-              </Text>
-              <Text className="text-blue-700 text-sm leading-5">
-                 กรอกข้อมูลให้ครบถ้วน{"\n"}
-                 อีเมลต้องมีรูปแบบที่ถูกต้อง{"\n"}
-                 เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก{"\n"}
-                 รหัสผ่านต้อง อย่างน้อย 6 ตัวอักษร
-              </Text>
             </View>
           </View>
         </ScrollView>
