@@ -180,7 +180,7 @@ export default function Index() {
       setIsLoading(false);
       Alert.alert(
         "สำเร็จ!",
-        `ลงทะเบียนสำเร็จ\n\nชื่อ: ${formData.fullName}\nอีเมล: ${formData.email}\nเบอร์: ${formData.phone}\nเพศ: ${formData.gender}`,
+        `ลงทะเบียนสำเร็จ\n\nชื่อ: ${formData.fullName}\nอีเมล: ${formData.email}\nเบอร์: ${formData.phone}\nเพศ: ${formData.gender === 'male' ? 'ชาย' : formData.gender === 'female' ? 'หญิง' : 'ไม่ระบุ'}`,
         [
           { text: "ตรวจสอบ", onPress: () => console.log("Form Data:", formData) },
           { text: "รีเซ็ตฟอร์ม", onPress: handleReset, style: "cancel" },
