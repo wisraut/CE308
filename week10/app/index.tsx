@@ -1,15 +1,12 @@
-import { Text, View } from "react-native";
+import React from 'react';
+import { Provider} from 'react-redux';
+import {store} from './redux/store';
+import CounterScreen from './screens/CounterScreen';
 
-export default function Index() {
+export default function App() {
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Text>Edit app/index.tsx to edit this screen.</Text>
-    </View>
+    <Provider store={store}>
+      <CounterScreen />
+    </Provider>
   );
 }
